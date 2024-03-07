@@ -87,18 +87,23 @@ function Home(props) {
           }}>
           {item?.heading}
         </Text>
-        <Text style={{textAlign: 'justify'}}>{'Type: ' + item?.type}</Text>
+        <Text style={{textAlign: 'justify', color: 'black'}}>
+          {'Type: ' + item?.type}
+        </Text>
         {item?.type == 'PARAGRAPH' && (
-          <Text style={{textAlign: 'justify', marginVertical: 2}}>
+          <Text
+            style={{textAlign: 'justify', marginVertical: 2, color: 'black'}}>
             {item?.data[0]}
           </Text>
         )}
         {item?.type == 'KEY_PARAGRAPH' && (
           <>
-            <Text style={{textAlign: 'justify', marginVertical: 2}}>
+            <Text
+              style={{textAlign: 'justify', marginVertical: 2, color: 'black'}}>
               {item?.data?.ascendant}
             </Text>
-            <Text style={{textAlign: 'justify', marginVertical: 2}}>
+            <Text
+              style={{textAlign: 'justify', marginVertical: 2, color: 'black'}}>
               {item?.data?.report}
             </Text>
           </>
@@ -117,16 +122,20 @@ function Home(props) {
     return (
       <DataTable>
         <DataTable.Header>
-          <DataTable.Title>Key</DataTable.Title>
-          <DataTable.Title>Value</DataTable.Title>
+          <DataTable.Title textStyle={{color: 'black'}}>Key</DataTable.Title>
+          <DataTable.Title textStyle={{color: 'black'}}>Value</DataTable.Title>
         </DataTable.Header>
 
         {rowkeys?.length > 0 &&
           rowkeys.slice(from, to)?.map(([key, value]) => (
             <>
               <DataTable.Row key={key}>
-                <DataTable.Cell key={key}>{key}</DataTable.Cell>
-                <DataTable.Cell key={value}>{value}</DataTable.Cell>
+                <DataTable.Cell textStyle={{color: 'black'}} key={key}>
+                  {key}
+                </DataTable.Cell>
+                <DataTable.Cell textStyle={{color: 'black'}} key={value}>
+                  {value}
+                </DataTable.Cell>
               </DataTable.Row>
             </>
           ))}
@@ -139,6 +148,7 @@ function Home(props) {
           numberOfItemsPerPage={itemsPerPage}
           showFastPaginationControls
           selectPageDropdownLabel={'Rows per page'}
+          style={{backgroundColor: 'black'}}
         />
       </DataTable>
     );
@@ -154,16 +164,32 @@ function Home(props) {
     return (
       <DataTable>
         <DataTable.Header>
-          <DataTable.Title style={{marginLeft: -7}}>{'House'}</DataTable.Title>
-          <DataTable.Title style={{marginLeft: -7}}>{'Degree'}</DataTable.Title>
-          <DataTable.Title>{'Sign'}</DataTable.Title>
-          <DataTable.Title style={{marginLeft: -27}}>
+          <DataTable.Title
+            textStyle={{color: 'black'}}
+            style={{marginLeft: -7}}>
+            {'House'}
+          </DataTable.Title>
+          <DataTable.Title
+            textStyle={{color: 'black'}}
+            style={{marginLeft: -7}}>
+            {'Degree'}
+          </DataTable.Title>
+          <DataTable.Title textStyle={{color: 'black'}}>
+            {'Sign'}
+          </DataTable.Title>
+          <DataTable.Title
+            textStyle={{color: 'black'}}
+            style={{marginLeft: -27}}>
             {'Sign Lord'}
           </DataTable.Title>
-          <DataTable.Title style={{marginLeft: -5}}>
+          <DataTable.Title
+            textStyle={{color: 'black'}}
+            style={{marginLeft: -5}}>
             {'Start Lord'}
           </DataTable.Title>
-          <DataTable.Title style={{marginLeft: -5}}>
+          <DataTable.Title
+            textStyle={{color: 'black'}}
+            style={{marginLeft: -5}}>
             {'Sub Lord'}
           </DataTable.Title>
         </DataTable.Header>
@@ -172,14 +198,26 @@ function Home(props) {
           rowkeys.slice(from, to)?.map((item, index) => (
             <View>
               <DataTable.Row key={index}>
-                <DataTable.Cell>{item?.house}</DataTable.Cell>
-                <DataTable.Cell style={{marginLeft: -35, marginRight: 5}}>
+                <DataTable.Cell textStyle={{color: 'black'}}>
+                  {item?.house}
+                </DataTable.Cell>
+                <DataTable.Cell
+                  textStyle={{color: 'black'}}
+                  style={{marginLeft: -35, marginRight: 5}}>
                   {item?.degree}
                 </DataTable.Cell>
-                <DataTable.Cell>{item?.sign}</DataTable.Cell>
-                <DataTable.Cell>{item?.sign_lord}</DataTable.Cell>
-                <DataTable.Cell>{item?.start_lord}</DataTable.Cell>
-                <DataTable.Cell>{item?.sub_lord}</DataTable.Cell>
+                <DataTable.Cell textStyle={{color: 'black'}}>
+                  {item?.sign}
+                </DataTable.Cell>
+                <DataTable.Cell textStyle={{color: 'black'}}>
+                  {item?.sign_lord}
+                </DataTable.Cell>
+                <DataTable.Cell textStyle={{color: 'black'}}>
+                  {item?.start_lord}
+                </DataTable.Cell>
+                <DataTable.Cell textStyle={{color: 'black'}}>
+                  {item?.sub_lord}
+                </DataTable.Cell>
               </DataTable.Row>
             </View>
           ))}
@@ -192,6 +230,7 @@ function Home(props) {
           numberOfItemsPerPage={itemsPerPage}
           showFastPaginationControls
           selectPageDropdownLabel={'Rows per page'}
+          style={{backgroundColor: 'black'}}
         />
       </DataTable>
     );
