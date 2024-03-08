@@ -3,236 +3,229 @@ import {
   View,
   StyleSheet,
   Text,
-  useWindowDimensions,
   TextInput,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
+  Alert,
+  ToastAndroid,
+  Modal,
+  Dimensions,
 } from 'react-native';
-import {
-  DataTable,
-  Divider,
-  RadioButton,
-  SegmentedButtons,
-  TouchableRipple,
-} from 'react-native-paper';
-import Icon2 from 'react-native-vector-icons/dist/FontAwesome';
-import Icon3 from 'react-native-vector-icons/dist/Entypo';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import {ScrollView} from 'react-native-gesture-handler';
+import {Divider, Snackbar, TouchableRipple} from 'react-native-paper';
+import Icon from 'react-native-vector-icons/Entypo';
+import Icon2 from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {FlatList} from 'react-native-gesture-handler';
 function Home(props) {
-  const [radiovalue, setradioValue] = React.useState('key-value');
   const [state, setstate] = useState({
     loading: false,
+    id: 0,
+    title: '',
+    about: '',
     data: [],
-    filtervalue: [],
+    visible: false,
+    check: [],
+    editshowid: null,
+    showmodal: false,
+    editid: null,
+    edittitle: '',
+    editabout: '',
+    deletebox: false,
+    deleteid: null,
   });
-  const fetchData = async () => {
+  async function getStorageObject(key) {
     try {
-      setstate(prevs => ({...prevs, loading: true}));
-      const response = await fetch(
-        'https://harpreetcd.github.io/reactnative.json',
-      );
-      if (!response.ok) {
-        throw new Error('Network request failed');
-      }
-      const result = await response.json();
+      const value = await AsyncStorage.getItem(key);
+      return value != null ? JSON.parse(value) : null;
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  const getInfo = () => {
+    getStorageObject('settingindex').then(index => {
+      getStorageObject('taskdata').then(result => {
+        if (result) {
+          setstate(prevs => ({
+            ...prevs,
+            data: [...prevs.data, ...result],
+            id: index,
+          }));
+        }
+      });
+    });
+  };
+  useEffect(() => getInfo(), []);
+
+  async function setStorageObject(key, value) {
+    try {
+      await AsyncStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  const deleteTask = async ({taskId}) => {
+    const taskIndex = state.data.findIndex(task => task.id === taskId);
+
+    if (taskIndex !== -1) {
+      const newData = [
+        ...state.data.slice(0, taskIndex),
+        ...state.data.slice(taskIndex + 1),
+      ];
       setstate(prevs => ({
         ...prevs,
-        data: result,
-        filtervalue: result.report?.favourablePoints,
+        data: newData,
+        deletebox: false,
       }));
-    } catch (error) {
-      console.log(error.message);
-    } finally {
-      setstate(prevs => ({...prevs, loading: false}));
+      await setStorageObject('taskdata', newData);
     }
   };
-  useEffect(() => {
-    fetchData();
-  }, []);
-  useEffect(() => {
-    if (radiovalue == 'key-value') {
+
+  const CreateTask = () => {
+    if (state.title === '') {
+      Alert.alert('Alert!', 'Please fill title to continue. ');
+    } else if (state.about === '') {
+      Alert.alert('Alert!', 'Please fill about to continue.');
+    } else if (state.title.length > 0 && state.about.length > 0) {
+      const newTask = {
+        id: state.id + 1,
+        title: state.title,
+        about: state.about,
+      };
       setstate(prevs => ({
         ...prevs,
-        filtervalue: prevs.data?.report?.favourablePoints,
+        data: [...prevs.data, newTask],
+        visible: true,
+        id: state.id + 1,
+        title: '',
+        about: '',
       }));
-    } else if (radiovalue == 'paragraph') {
-      setstate(prevs => ({
-        ...prevs,
-        filtervalue: prevs.data?.report?.numerologyReport,
-      }));
-    } else if (radiovalue == 'key-paragraph') {
-      setstate(prevs => ({
-        ...prevs,
-        filtervalue: prevs.data?.report?.ascendantReport,
-      }));
-    } else {
-      setstate(prevs => ({
-        ...prevs,
-        filtervalue: prevs.data?.houseCuspsAndSandhi[0]?.data,
-      }));
+      setStorageObject('taskdata', [...state.data, newTask]).then(() =>
+        setStorageObject('settingindex', state.id + 1),
+      );
     }
-  }, [radiovalue]);
+  };
+
+  const updateTask = async ({taskId, newTitle, newAbout}) => {
+    const taskIndex = state.data.findIndex(task => task.id === taskId);
+
+    if (taskIndex !== -1) {
+      const updatedTask = {
+        ...state.data[taskIndex],
+        title: newTitle,
+        about: newAbout,
+      };
+      const newData = [
+        ...state.data.slice(0, taskIndex),
+        updatedTask,
+        ...state.data.slice(taskIndex + 1),
+      ];
+      setstate(prevs => ({
+        ...prevs,
+        data: newData,
+        showmodal: false,
+      }));
+      await setStorageObject('taskdata', newData);
+    }
+  };
 
   const renderItem = ({item, index}) => {
     return (
-      <View style={{marginHorizontal: 10, padding: 10}}>
-        <Text
+      <View>
+        <TouchableRipple
+          rippleColor={'white'}
+          onPress={() => null}
+          onLongPress={() =>
+            setstate(prevs => ({...prevs, editshowid: item?.id}))
+          }
           style={{
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: 'black',
-            marginVertical: 2,
+            borderWidth: 1,
+            borderColor: '#A35709',
+            padding: 10,
+            borderRadius: 10,
+            marginBottom: 8,
           }}>
-          {item?.heading}
-        </Text>
-        <Text style={{textAlign: 'justify', color: 'black'}}>
-          {'Type: ' + item?.type}
-        </Text>
-        {item?.type == 'PARAGRAPH' && (
-          <Text
-            style={{textAlign: 'justify', marginVertical: 2, color: 'black'}}>
-            {item?.data[0]}
-          </Text>
-        )}
-        {item?.type == 'KEY_PARAGRAPH' && (
-          <>
-            <Text
-              style={{textAlign: 'justify', marginVertical: 2, color: 'black'}}>
-              {item?.data?.ascendant}
-            </Text>
-            <Text
-              style={{textAlign: 'justify', marginVertical: 2, color: 'black'}}>
-              {item?.data?.report}
-            </Text>
-          </>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+            }}>
+            <View>
+              <Text style={{color: 'white', fontSize: 18}}>{item?.title}</Text>
+              <Text style={{color: 'white'}}>{item?.about}</Text>
+            </View>
+            <TouchableRipple
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 10,
+                borderRadius: 5,
+                borderWidth: 1,
+                borderColor: '#A35709',
+              }}
+              rippleColor={'white'}
+              onPress={() =>
+                setstate(prevs => ({
+                  ...prevs,
+                  deletebox: true,
+                  deleteid: item?.id,
+                }))
+              }>
+              <Icon name={'cross'} color="#FF8303" size={23} />
+            </TouchableRipple>
+          </View>
+        </TouchableRipple>
+        {state.editshowid == item?.id && (
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              justifyContent: 'flex-end',
+              marginBottom: 10,
+            }}>
+            <TouchableRipple
+              rippleColor={'white'}
+              onPress={() =>
+                setstate(prevs => ({
+                  ...prevs,
+                  showmodal: true,
+                  editid: item?.id,
+                  edittitle: item?.title,
+                  editabout: item?.about,
+                }))
+              }
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#A35709',
+                padding: 10,
+                marginRight: 5,
+                borderRadius: 5,
+              }}>
+              <Icon name={'edit'} color="#FF8303" size={23} />
+            </TouchableRipple>
+            <TouchableRipple
+              rippleColor={'white'}
+              onPress={() =>
+                setstate(prevs => ({
+                  ...prevs,
+                  showmodal: true,
+                  editid: item?.id,
+                  edittitle: item?.title,
+                  editabout: item?.about,
+                }))
+              }
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#A35709',
+                padding: 10,
+                borderRadius: 5,
+              }}>
+              <Icon2 name={'information'} color="#FF8303" size={23} />
+            </TouchableRipple>
+          </View>
         )}
       </View>
-    );
-  };
-
-  const RenderTable = ({data}) => {
-    const itemsPerPage = 6;
-    const [page, setPage] = useState(0);
-    const rowkeys = data[0]?.data != undefined && Object.entries(data[0].data);
-    const from = page * itemsPerPage;
-    const to = Math.min((page + 1) * itemsPerPage, rowkeys.length);
-    const items = rowkeys;
-    return (
-      <DataTable>
-        <DataTable.Header>
-          <DataTable.Title textStyle={{color: 'black'}}>Key</DataTable.Title>
-          <DataTable.Title textStyle={{color: 'black'}}>Value</DataTable.Title>
-        </DataTable.Header>
-
-        {rowkeys?.length > 0 &&
-          rowkeys.slice(from, to)?.map(([key, value]) => (
-            <>
-              <DataTable.Row key={key}>
-                <DataTable.Cell textStyle={{color: 'black'}} key={key}>
-                  {key}
-                </DataTable.Cell>
-                <DataTable.Cell textStyle={{color: 'black'}} key={value}>
-                  {value}
-                </DataTable.Cell>
-              </DataTable.Row>
-            </>
-          ))}
-
-        <DataTable.Pagination
-          page={page}
-          numberOfPages={Math.ceil(items.length / itemsPerPage)}
-          onPageChange={page => setPage(page)}
-          label={`${from + 1}-${to} of ${items.length}`}
-          numberOfItemsPerPage={itemsPerPage}
-          showFastPaginationControls
-          selectPageDropdownLabel={'Rows per page'}
-          style={{backgroundColor: 'black'}}
-        />
-      </DataTable>
-    );
-  };
-
-  const RenderTable2 = ({data}) => {
-    const itemsPerPage = 6;
-    const [page, setPage] = useState(0);
-    const rowkeys = data?.length > 0 && data;
-    const from = page * itemsPerPage;
-    const to = Math.min((page + 1) * itemsPerPage, rowkeys.length);
-    const items = rowkeys;
-    return (
-      <DataTable>
-        <DataTable.Header>
-          <DataTable.Title
-            textStyle={{color: 'black'}}
-            style={{marginLeft: -7}}>
-            {'House'}
-          </DataTable.Title>
-          <DataTable.Title
-            textStyle={{color: 'black'}}
-            style={{marginLeft: -7}}>
-            {'Degree'}
-          </DataTable.Title>
-          <DataTable.Title textStyle={{color: 'black'}}>
-            {'Sign'}
-          </DataTable.Title>
-          <DataTable.Title
-            textStyle={{color: 'black'}}
-            style={{marginLeft: -27}}>
-            {'Sign Lord'}
-          </DataTable.Title>
-          <DataTable.Title
-            textStyle={{color: 'black'}}
-            style={{marginLeft: -5}}>
-            {'Start Lord'}
-          </DataTable.Title>
-          <DataTable.Title
-            textStyle={{color: 'black'}}
-            style={{marginLeft: -5}}>
-            {'Sub Lord'}
-          </DataTable.Title>
-        </DataTable.Header>
-
-        {rowkeys?.length > 0 &&
-          rowkeys.slice(from, to)?.map((item, index) => (
-            <View>
-              <DataTable.Row key={index}>
-                <DataTable.Cell textStyle={{color: 'black'}}>
-                  {item?.house}
-                </DataTable.Cell>
-                <DataTable.Cell
-                  textStyle={{color: 'black'}}
-                  style={{marginLeft: -35, marginRight: 5}}>
-                  {item?.degree}
-                </DataTable.Cell>
-                <DataTable.Cell textStyle={{color: 'black'}}>
-                  {item?.sign}
-                </DataTable.Cell>
-                <DataTable.Cell textStyle={{color: 'black'}}>
-                  {item?.sign_lord}
-                </DataTable.Cell>
-                <DataTable.Cell textStyle={{color: 'black'}}>
-                  {item?.start_lord}
-                </DataTable.Cell>
-                <DataTable.Cell textStyle={{color: 'black'}}>
-                  {item?.sub_lord}
-                </DataTable.Cell>
-              </DataTable.Row>
-            </View>
-          ))}
-
-        <DataTable.Pagination
-          page={page}
-          numberOfPages={Math.ceil(items.length / itemsPerPage)}
-          onPageChange={page => setPage(page)}
-          label={`${from + 1}-${to} of ${items.length}`}
-          numberOfItemsPerPage={itemsPerPage}
-          showFastPaginationControls
-          selectPageDropdownLabel={'Rows per page'}
-          style={{backgroundColor: 'black'}}
-        />
-      </DataTable>
     );
   };
 
@@ -240,166 +233,260 @@ function Home(props) {
     <View style={styles.container}>
       <View
         style={{
-          marginTop: 60,
-          marginBottom: -20,
-          justifyContent: 'center',
-          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexDirection: 'row',
         }}>
-        <Text style={{color: 'white', fontWeight: 'bold'}}>Fetch Test App</Text>
+        <View style={{flex: 1}}>
+          <TextInput
+            value={state.title}
+            style={{
+              borderRadius: 10,
+              paddingLeft: 10,
+              borderWidth: 1,
+              borderColor: '#A35709',
+              marginBottom: 10,
+            }}
+            placeholder="Title..."
+            cursorColor={'#A35709'}
+            onChangeText={e =>
+              setstate(prevs => ({...prevs, title: e.trimStart()}))
+            }
+          />
+          <TextInput
+            value={state.about}
+            style={{
+              borderRadius: 10,
+              paddingLeft: 10,
+              borderWidth: 1,
+              borderColor: '#A35709',
+            }}
+            placeholder="About..."
+            cursorColor={'#A35709'}
+            onChangeText={e =>
+              setstate(prevs => ({...prevs, about: e.trimStart()}))
+            }
+          />
+        </View>
+        <TouchableRipple
+          style={{
+            borderWidth: 2,
+            borderColor: '#FF8303',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 30,
+            marginLeft: 20,
+            borderRadius: 10,
+          }}
+          rippleColor={'white'}
+          onPress={() => CreateTask()}>
+          <Icon name={'plus'} color="#FF8303" size={23} />
+        </TouchableRipple>
       </View>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          backgroundColor: 'white',
-          marginTop: 70,
-          paddingTop: 10,
-        }}>
+      <View style={{position: 'relative', zIndex: 10}}>
+        <Snackbar
+          style={{
+            position: 'absolute',
+            top: 490,
+            left: 1,
+          }}
+          visible={state.visible}
+          onDismiss={() => setstate(prevs => ({...prevs, visible: false}))}
+          action={{
+            label: 'ok',
+            onPress: () => setstate(prevs => ({...prevs, visible: false})),
+          }}>
+          Successfully created a task
+        </Snackbar>
+      </View>
+      <FlatList
+        data={state.data}
+        keyExtractor={item => item?.id.toString()}
+        renderItem={renderItem}
+        contentContainerStyle={{marginTop: 50, paddingBottom: 60}}
+        ListEmptyComponent={
+          <View
+            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <Divider
+              style={{
+                padding: 2,
+                borderRadius: 10,
+                backgroundColor: '#FF8303',
+                width: '20%',
+                marginBottom: 8,
+              }}
+            />
+            <Text style={{fontSize: 24}}>No Task</Text>
+            <Divider
+              style={{
+                marginTop: 12,
+                padding: 2,
+                borderRadius: 10,
+                backgroundColor: '#FF8303',
+                width: '20%',
+              }}
+            />
+          </View>
+        }
+      />
+      <Modal animationType="fade" transparent={true} visible={state.showmodal}>
         <View
           style={{
-            flexDirection: 'row',
-            borderWidth: 2,
-            borderColor: 'grey',
-            borderRadius: 10,
-            overflow: 'hidden',
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            position: 'absolute',
+            top: 0,
+            bottom: -240,
+            left: 0,
+            right: 0,
           }}>
-          <TouchableRipple
-            style={{
-              paddingVertical: 20,
-              paddingHorizontal: 10,
-              marginTop: -10,
-              marginBottom: -10,
-              marginRight: -2,
-              backgroundColor: radiovalue == 'key-value' ? 'black' : 'white',
-            }}
-            rippleColor={'white'}
-            onPress={() => setradioValue('key-value')}>
-            <Text
-              style={{
-                color: radiovalue == 'key-value' ? 'white' : 'black',
-                fontWeight: 'bold',
-              }}>
-              Key Value
-            </Text>
-          </TouchableRipple>
           <View
             style={{
-              height: '100%',
-              borderWidth: 1,
-              borderColor: 'grey',
-              marginHorizontal: 2,
-            }}
-          />
-          <TouchableRipple
-            style={{
-              paddingVertical: 20,
-              paddingHorizontal: 10,
-              marginTop: -10,
-              marginBottom: -10,
-              marginRight: -2,
-              backgroundColor: radiovalue == 'paragraph' ? 'black' : 'white',
-            }}
-            rippleColor={'white'}
-            onPress={() => setradioValue('paragraph')}>
-            <Text
+              position: 'relative',
+              backgroundColor: '#1B1A17',
+              padding: 6,
+              alignSelf: 'center',
+              width: Dimensions.get('screen').width * 0.95,
+              // height: Dimensions.get('screen').height * 0.55,
+              borderRadius: 10,
+              elevation: 5,
+              marginHorizontal: 3,
+            }}>
+            <TextInput
               style={{
-                color: radiovalue == 'paragraph' ? 'white' : 'black',
-                fontWeight: 'bold',
-              }}>
-              Paragraph
-            </Text>
-          </TouchableRipple>
-          <View
-            style={{
-              height: '100%',
-              borderWidth: 1,
-              borderColor: 'grey',
-              marginHorizontal: 2,
-            }}
-          />
-          <TouchableRipple
-            style={{
-              paddingVertical: 20,
-              paddingHorizontal: 10,
-              marginTop: -10,
-              marginBottom: -10,
-              marginRight: -2,
-              backgroundColor:
-                radiovalue == 'key-paragraph' ? 'black' : 'white',
-            }}
-            rippleColor={'white'}
-            onPress={() => setradioValue('key-paragraph')}>
-            <Text
-              style={{
-                color: radiovalue == 'key-paragraph' ? 'white' : 'black',
-                fontWeight: 'bold',
-              }}>
-              Key paragraph
-            </Text>
-          </TouchableRipple>
-          <View
-            style={{
-              height: '100%',
-              borderWidth: 1,
-              borderColor: 'grey',
-              marginHorizontal: 2,
-            }}
-          />
-          <TouchableRipple
-            style={{
-              paddingVertical: 20,
-              paddingHorizontal: 10,
-              marginTop: -10,
-              marginBottom: -10,
-              marginRight: -2,
-              backgroundColor: radiovalue == 'table' ? 'black' : 'white',
-            }}
-            rippleColor={'white'}
-            onPress={() => setradioValue('table')}>
-            <Text
-              style={{
-                color: radiovalue == 'table' ? 'white' : 'black',
-                fontWeight: 'bold',
-              }}>
-              Table
-            </Text>
-          </TouchableRipple>
-        </View>
-        {state.filtervalue?.length > 0 && radiovalue == 'key-value' && (
-          <>
-            <RenderTable data={state.filtervalue} />
-          </>
-        )}
-        {state.loading ? (
-          <ActivityIndicator
-            style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}
-            size={'large'}
-          />
-        ) : (
-          (radiovalue == 'paragraph' || radiovalue == 'key-paragraph') && (
-            <FlatList
-              data={state.filtervalue}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={renderItem}
+                margin: 5,
+                color: 'white',
+                borderWidth: 1,
+                borderColor: '#A35709',
+                paddingLeft: 10,
+                borderRadius: 10,
+              }}
+              value={state.edittitle}
+              onChangeText={e => setstate(prevs => ({...prevs, edittitle: e}))}
+              placeholder="input"
             />
-          )
-        )}
-        {state.filtervalue?.length > 0 && radiovalue == 'table' && (
-          <RenderTable2 data={state.filtervalue} />
-        )}
-      </View>
+            <TextInput
+              style={{
+                margin: 5,
+                color: 'white',
+                borderWidth: 1,
+                borderColor: '#A35709',
+                paddingLeft: 10,
+                paddingBottom: 240,
+                borderRadius: 10,
+              }}
+              onChangeText={e => setstate(prevs => ({...prevs, editabout: e}))}
+              value={state.editabout}
+              placeholder="input"
+            />
+            <View style={{flexDirection: 'row', justifyContent: 'center'}}>
+              <TouchableRipple
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#A35709',
+                  padding: 10,
+                  paddingHorizontal: 25,
+                  borderRadius: 10,
+                  marginRight: 10,
+                }}
+                onPress={() =>
+                  setstate(prevs => ({...prevs, showmodal: false}))
+                }
+                rippleColor={'white'}>
+                <Text style={{color: 'white'}}>Cancel</Text>
+              </TouchableRipple>
+              <TouchableRipple
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#A35709',
+                  paddingHorizontal: 25,
+                  padding: 10,
+                  borderRadius: 10,
+                }}
+                onPress={() =>
+                  updateTask({
+                    taskId: state.editid,
+                    newTitle: state.edittitle,
+                    newAbout: state.editabout,
+                  })
+                }
+                rippleColor={'white'}>
+                <Text style={{color: 'white'}}>Save</Text>
+              </TouchableRipple>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal animationType="fade" transparent={true} visible={state.deletebox}>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            position: 'absolute',
+            top: 0,
+            bottom: -240,
+            left: 0,
+            right: 0,
+          }}>
+          <View
+            style={{
+              position: 'relative',
+              backgroundColor: '#1B1A17',
+              padding: 6,
+              alignSelf: 'center',
+              width: Dimensions.get('screen').width * 0.95,
+              // height: Dimensions.get('screen').height * 0.55,
+              borderRadius: 10,
+              elevation: 5,
+              marginHorizontal: 3,
+            }}>
+            <Text>Delete the task?</Text>
+            <View style={{flexDirection: 'row', justifyContent: 'center'}}>
+              <TouchableRipple
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#A35709',
+                  paddingHorizontal: 25,
+                  padding: 10,
+                  borderRadius: 10,
+                }}
+                onPress={() => deleteTask({taskId: state?.deleteid})}
+                rippleColor={'white'}>
+                <Text style={{color: 'white'}}>Yes</Text>
+              </TouchableRipple>
+              <TouchableRipple
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#A35709',
+                  paddingHorizontal: 25,
+                  padding: 10,
+                  borderRadius: 10,
+                }}
+                onPress={() =>
+                  setstate(prevs => ({...prevs, deletebox: false}))
+                }
+                rippleColor={'white'}>
+                <Text style={{color: 'white'}}>No</Text>
+              </TouchableRipple>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 10,
+    position: 'relative',
     // justifyContent: 'center',
     // alignItems: 'center',
     // padding: 10,
-    backgroundColor: '#3C12B3', //F0F4F7
+    backgroundColor: '#1B1A17',
   },
 });
 export default Home;
